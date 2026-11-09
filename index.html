@@ -19,9 +19,8 @@
     button:focus-visible { outline: 3px solid #555; outline-offset: 3px; }
     button:disabled { cursor: default; }
     button[hidden] { display: none; }
-    #back { left: max(20px, env(safe-area-inset-left)); display: flex; align-items: center; gap: 28px; width: auto; border-radius: 12px; font: 24px/1.2 Arial, sans-serif; }
-    #back[hidden] { display: none; }
-    #back svg { width: 40px; height: 40px; flex: none; }
+    #back { left: max(20px, env(safe-area-inset-left)); }
+    #beginning { left: calc(max(20px, env(safe-area-inset-left)) + 100px); }
     #next { right: max(20px, env(safe-area-inset-right)); }
     svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .turning-sheet { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
@@ -29,7 +28,8 @@
 </head>
 <body>
   <main id="book" aria-live="polite"><div class="page"><span class="letter" lang="he" aria-label="Aleph">א</span></div></main>
-  <button id="back" aria-label="Previous page" hidden><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M27 16H5m10-10L5 16l10 10"/></svg><span>Beg</span></button>
+  <button id="back" aria-label="Previous page" hidden><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M27 16H5m10-10L5 16l10 10"/></svg></button>
+  <button id="beginning" aria-label="Return to beginning" hidden><svg viewBox="0 0 40 32" aria-hidden="true"><path d="M18 6L8 16l10 10M32 6L22 16l10 10"/></svg></button>
   <button id="next" aria-label="Next letter"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 16h22M17 6l10 10-10 10"/></svg></button>
   <script>
     const letters = [
@@ -51,6 +51,7 @@
     letters.push(...practiceCombinations.slice(0, 12));
     const book = document.getElementById('book');
     const back = document.getElementById('back');
+    const beginning = document.getElementById('beginning');
     const next = document.getElementById('next');
     let index = 0;
     let turning = false;
@@ -58,7 +59,7 @@
       const target = index + direction;
       if (turning || target < 0 || target >= letters.length) return;
       turning = true;
-      back.disabled = next.disabled = true;
+      back.disabled = beginning.disabled = next.disabled = true;
       const outgoing = book.firstElementChild;
       const incoming = document.createElement('div');
       incoming.className = 'page';
@@ -84,16 +85,43 @@
       }
       incoming.append(letter);
       book.prepend(incoming);
+      centerGlyph(letter);
       outgoing.setAttribute('aria-hidden', 'true');
       animatePage(outgoing, direction, () => {
         outgoing.remove();
         index = target;
         back.hidden = index === 0;
+        beginning.hidden = index === 0;
         next.hidden = index === letters.length - 1;
-        back.disabled = next.disabled = false;
+        back.disabled = beginning.disabled = next.disabled = false;
         turning = false;
         if (document.activeElement.hidden) (direction > 0 ? back : next).focus();
       });
+    }
+    function glyphBaseline(glyph) {
+      const marker = document.createElement('span');
+      marker.style.cssText = 'display:inline-block;width:0;height:0;padding:0;margin:0;border:0;vertical-align:baseline';
+      glyph.append(marker);
+      const baseline = marker.getBoundingClientRect().top;
+      marker.remove();
+      return baseline;
+    }
+    function centerGlyph(glyph) {
+      if (glyph.dataset.vowel) return;
+      glyph.style.transform = 'none';
+      const style = getComputedStyle(glyph);
+      const context = document.createElement('canvas').getContext('2d');
+      context.font = `${style.fontSize} ${style.fontFamily}`;
+      context.textAlign = 'center';
+      const metrics = context.measureText(glyph.textContent);
+      const baseline = glyphBaseline(glyph);
+      const bounds = glyph.getBoundingClientRect();
+      // Center the visible ink, including vowel marks, rather than the font line box.
+      const inkX = bounds.left + bounds.width / 2
+        + (metrics.actualBoundingBoxRight - metrics.actualBoundingBoxLeft) / 2;
+      const inkY = baseline
+        + (metrics.actualBoundingBoxDescent - metrics.actualBoundingBoxAscent) / 2;
+      glyph.style.transform = `translate(${innerWidth / 2 - inkX}px, ${innerHeight / 2 - inkY}px)`;
     }
     function animatePage(page, direction, finish) {
       if (matchMedia('(prefers-reduced-motion: reduce)').matches) { finish(); return; }
@@ -125,11 +153,7 @@
       } else {
       // Measure the actual DOM baseline; canvas "middle" uses different font metrics
       // and makes the letter jump when the animated sheet replaces the HTML page.
-      const baselineMarker = document.createElement('span');
-      baselineMarker.style.cssText = 'display:inline-block;width:0;height:0;padding:0;margin:0;border:0;vertical-align:baseline';
-      glyph.append(baselineMarker);
-      const baseline = baselineMarker.getBoundingClientRect().top;
-      baselineMarker.remove();
+      const baseline = glyphBaseline(glyph);
       const bounds = glyph.getBoundingClientRect();
       ink.font = `${style.fontSize} ${style.fontFamily}`;
       ink.fillStyle = style.color;
@@ -217,7 +241,12 @@
       requestAnimationFrame(frame);
     }
     back.addEventListener('click', () => turn(-1));
+    beginning.addEventListener('click', () => { if (index > 0) turn(-index); });
     next.addEventListener('click', () => turn(1));
+    document.fonts.ready.then(() => centerGlyph(book.firstElementChild.querySelector('.letter')));
+    window.addEventListener('resize', () => {
+      document.querySelectorAll('.page .letter').forEach(centerGlyph);
+    });
   </script>
 </body>
 </html>
