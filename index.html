@@ -6,11 +6,11 @@
   <title>Hebrew Lesson</title>
   <style>
     * { box-sizing: border-box; }
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: white; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #dce7df; }
     body { perspective: 1800px; }
-    .page { position: absolute; inset: 0; display: grid; place-items: center; background: white; backface-visibility: hidden; }
-    .page::before { content: ''; position: absolute; width: min(86vw, 86vh); height: min(82vw, 82vh); border: 2px solid #ff1616; box-shadow: 2px 3px 5px #0004; pointer-events: none; }
-    .letter { font-family: 'Times New Roman', 'Noto Serif Hebrew', serif; font-size: min(62vw, 62vh); line-height: 1.2; color: #111; }
+    .page { position: absolute; inset: 0; display: grid; place-items: center; background: #dce7df; backface-visibility: hidden; }
+    .page::before { content: ''; position: absolute; width: min(86vw, 86vh); height: min(82vw, 82vh); background: white; border: 2px solid #ff1616; box-shadow: 2px 3px 5px #0004; pointer-events: none; }
+    .letter { position: relative; font-family: 'Times New Roman', 'Noto Serif Hebrew', serif; font-size: min(62vw, 62vh); line-height: 1.2; color: #111; }
     button { position: fixed; top: max(20px, env(safe-area-inset-top)); width: 64px; height: 64px; padding: 12px; border: 0; background: transparent; color: #111; cursor: pointer; z-index: 5; border-radius: 50%; }
     button:hover { background: #f2f2f2; }
     button:focus-visible { outline: 3px solid #555; outline-offset: 3px; }
@@ -27,7 +27,7 @@
   <button id="back" aria-label="Previous letter" hidden><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M27 16H5m10-10L5 16l10 10"/></svg></button>
   <button id="next" aria-label="Next letter"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 16h22M17 6l10 10-10 10"/></svg></button>
   <script>
-    const letters = [ ['א', 'Aleph'], ['בּ', 'Bet'], ['ב', 'Vet'], ['ג', 'Gimmel'] ];
+    const letters = [ ['א', 'Aleph'], ['בּ', 'Bet'], ['ב', 'Vet'], ['ג', 'Gimmel'], ['ד', 'Daled'] ];
     const book = document.getElementById('book');
     const back = document.getElementById('back');
     const next = document.getElementById('next');
@@ -61,7 +61,9 @@
     }
     function animatePage(page, direction, finish) {
       if (matchMedia('(prefers-reduced-motion: reduce)').matches) { finish(); return; }
-      const width = innerWidth, height = innerHeight;
+      const frameStyle = getComputedStyle(page, '::before');
+      const width = parseFloat(frameStyle.width), height = parseFloat(frameStyle.height);
+      const originX = (innerWidth - width) / 2, originY = (innerHeight - height) / 2;
       const ratio = Math.min(devicePixelRatio || 1, 2);
       const texture = document.createElement('canvas');
       texture.width = Math.round(width * ratio);
@@ -71,21 +73,9 @@
       ink.fillStyle = 'white';
       ink.fillRect(0, 0, width, height);
       // Include the frame in the sheet texture so it curls with the letter.
-      const frameStyle = getComputedStyle(page, '::before');
-      const frameWidth = parseFloat(frameStyle.width);
-      const frameHeight = parseFloat(frameStyle.height);
-      const frameX = (width - frameWidth) / 2;
-      const frameY = (height - frameHeight) / 2;
-      ink.save();
-      ink.shadowColor = '#0004';
-      ink.shadowOffsetX = 2;
-      ink.shadowOffsetY = 3;
-      ink.shadowBlur = 5;
-      ink.fillRect(frameX, frameY, frameWidth, frameHeight);
-      ink.restore();
       ink.strokeStyle = '#ff1616';
       ink.lineWidth = 2;
-      ink.strokeRect(frameX + 1, frameY + 1, frameWidth - 2, frameHeight - 2);
+      ink.strokeRect(1, 1, width - 2, height - 2);
       const glyph = page.querySelector('.letter');
       const style = getComputedStyle(glyph);
       // Measure the actual DOM baseline; canvas "middle" uses different font metrics
@@ -100,12 +90,13 @@
       ink.fillStyle = style.color;
       ink.textAlign = 'center';
       ink.textBaseline = 'alphabetic';
-      ink.fillText(glyph.textContent, bounds.left + bounds.width / 2, baseline);
+      ink.fillText(glyph.textContent, bounds.left + bounds.width / 2 - originX, baseline - originY);
       const sheet = document.createElement('canvas');
       sheet.className = 'turning-sheet';
+      sheet.style.filter = 'drop-shadow(2px 3px 2px #0004)';
       sheet.setAttribute('aria-hidden', 'true');
-      sheet.width = texture.width;
-      sheet.height = texture.height;
+      sheet.width = Math.round(innerWidth * ratio);
+      sheet.height = Math.round(innerHeight * ratio);
       document.body.append(sheet);
       page.style.visibility = 'hidden';
       const ctx = sheet.getContext('2d');
@@ -113,8 +104,8 @@
       const started = performance.now();
       function frame(now) {
         const progress = Math.min((now - started) / 2800, 1);
-        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-        ctx.clearRect(0, 0, width, height);
+        ctx.setTransform(ratio, 0, 0, ratio, originX * ratio, originY * ratio);
+        ctx.clearRect(-originX, -originY, innerWidth, innerHeight);
         // Fan several thin sheets beneath the letter page, then settle them together.
         for (let layer = 4; layer >= 0; layer--) {
         const phase = Math.min(progress + layer * 0.035 * Math.sin(progress * Math.PI), 1);
