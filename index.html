@@ -88,22 +88,29 @@
       const strips = 100, step = width / strips;
       const started = performance.now();
       function frame(now) {
-        const progress = Math.min((now - started) / 1150, 1);
-        const eased = progress * progress * (3 - 2 * progress);
+        const progress = Math.min((now - started) / 2800, 1);
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
         ctx.clearRect(0, 0, width, height);
+        // Fan several thin sheets beneath the letter page, then settle them together.
+        for (let layer = 4; layer >= 0; layer--) {
+        const phase = Math.min(progress + layer * 0.035 * Math.sin(progress * Math.PI), 1);
+        const eased = phase * phase * (3 - 2 * phase);
+        const flutter = Math.sin(progress * Math.PI) ** 2;
         let x = 0, z = 0;
         // Integrate a curved sheet: its free edge rises and curls over the spine.
         for (let i = 0; i < strips; i++) {
           const position = (i + 0.5) / strips;
-          const angle = eased * Math.PI + Math.sin(eased * Math.PI) * position * 0.85;
+          const ripple = Math.sin(position * Math.PI * 4 - progress * Math.PI * 6 + layer * 0.6);
+          const angle = eased * Math.PI + Math.sin(eased * Math.PI) * position * 0.85
+            + ripple * flutter * position * 0.13;
           const nextX = x + Math.cos(angle) * step;
           const nextZ = z + Math.sin(angle) * step;
           const project = (horizontal, depth) => {
             const scale = 1 + depth / (width * 2.5);
             return {
               x: direction > 0 ? horizontal * scale : width - horizontal * scale,
-              y: height / 2 - height * scale / 2 - Math.sin(eased * Math.PI) * position * height * 0.12,
+              y: height / 2 - height * scale / 2 - Math.sin(eased * Math.PI) * position * height * 0.12
+                + flutter * (ripple * position * 9 + layer * 5),
               h: height * scale
             };
           };
@@ -112,13 +119,13 @@
           if (Math.abs(dx) > 0.01) {
             ctx.save();
             ctx.transform(dx / step, (right.y - left.y) / step, 0, left.h / height, left.x, left.y);
-            if (Math.cos(angle) > 0) {
+            if (Math.cos(angle) > 0 && layer === 0) {
               const sourceX = direction > 0 ? i * step : width - (i + 1) * step;
               if (direction < 0) { ctx.translate(step, 0); ctx.scale(-1, 1); }
               ctx.drawImage(texture, sourceX * ratio, 0, step * ratio, texture.height, 0, 0, step + 0.7, height);
               ctx.fillStyle = `rgba(0,0,0,${Math.sin(angle) * 0.12})`;
             } else {
-              ctx.fillStyle = '#faf9f6';
+              ctx.fillStyle = layer === 0 ? '#faf9f6' : ['#fff', '#f6f5f2', '#eeede9', '#faf9f6', '#e8e7e3'][layer];
               ctx.fillRect(0, 0, step + 0.7, height);
               ctx.fillStyle = `rgba(0,0,0,${Math.abs(Math.sin(angle)) * 0.16})`;
             }
@@ -127,6 +134,21 @@
           }
           x = nextX;
           z = nextZ;
+        }
+        // A fine free-edge line makes the separate ruffling leaves visible.
+        if (flutter > 0.001) {
+          const scale = 1 + z / (width * 2.5);
+          const edgeX = direction > 0 ? x * scale : width - x * scale;
+          const edgeRipple = Math.sin(Math.PI * 4 - progress * Math.PI * 6 + layer * 0.6);
+          const edgeY = height / 2 - height * scale / 2 - Math.sin(eased * Math.PI) * height * 0.12
+            + flutter * (edgeRipple * 9 + layer * 5);
+          ctx.beginPath();
+          ctx.moveTo(edgeX, edgeY);
+          ctx.lineTo(edgeX, edgeY + height * scale);
+          ctx.strokeStyle = `rgba(90,85,75,${flutter * 0.26})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
         }
         if (progress < 1) requestAnimationFrame(frame);
         else { sheet.remove(); finish(); }
