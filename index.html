@@ -9,7 +9,8 @@
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: white; }
     body { perspective: 1800px; }
     .page { position: absolute; inset: 0; display: grid; place-items: center; background: white; backface-visibility: hidden; }
-    .letter { font-family: 'Times New Roman', 'Noto Serif Hebrew', serif; font-size: min(65vw, 72vh); line-height: 1.2; color: #111; }
+    .page::before { content: ''; position: absolute; width: min(86vw, 86vh); height: min(82vw, 82vh); border: 2px solid #ff1616; box-shadow: 2px 3px 5px #0004; pointer-events: none; }
+    .letter { font-family: 'Times New Roman', 'Noto Serif Hebrew', serif; font-size: min(62vw, 62vh); line-height: 1.2; color: #111; }
     button { position: fixed; top: max(20px, env(safe-area-inset-top)); width: 64px; height: 64px; padding: 12px; border: 0; background: transparent; color: #111; cursor: pointer; z-index: 5; border-radius: 50%; }
     button:hover { background: #f2f2f2; }
     button:focus-visible { outline: 3px solid #555; outline-offset: 3px; }
@@ -69,6 +70,22 @@
       ink.scale(ratio, ratio);
       ink.fillStyle = 'white';
       ink.fillRect(0, 0, width, height);
+      // Include the frame in the sheet texture so it curls with the letter.
+      const frameStyle = getComputedStyle(page, '::before');
+      const frameWidth = parseFloat(frameStyle.width);
+      const frameHeight = parseFloat(frameStyle.height);
+      const frameX = (width - frameWidth) / 2;
+      const frameY = (height - frameHeight) / 2;
+      ink.save();
+      ink.shadowColor = '#0004';
+      ink.shadowOffsetX = 2;
+      ink.shadowOffsetY = 3;
+      ink.shadowBlur = 5;
+      ink.fillRect(frameX, frameY, frameWidth, frameHeight);
+      ink.restore();
+      ink.strokeStyle = '#ff1616';
+      ink.lineWidth = 2;
+      ink.strokeRect(frameX + 1, frameY + 1, frameWidth - 2, frameHeight - 2);
       const glyph = page.querySelector('.letter');
       const bounds = glyph.getBoundingClientRect();
       const style = getComputedStyle(glyph);
