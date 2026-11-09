@@ -14,6 +14,7 @@
     .letter.vowel { width: min(44vw, 44vh); height: min(44vw, 44vh); }
     .letter.vowel svg { display: block; width: 100%; height: 100%; fill: #111; stroke: none; }
     .letter.practice { font-size: min(54vw, 54vh); }
+    .letter.pair { font-size: min(32vw, 32vh); white-space: pre; direction: rtl; }
     button { position: fixed; top: max(20px, env(safe-area-inset-top)); width: 64px; height: 64px; padding: 12px; border: 0; background: transparent; color: #111; cursor: pointer; z-index: 5; border-radius: 50%; }
     button:hover { background: #f2f2f2; }
     button:focus-visible { outline: 3px solid #555; outline-offset: 3px; }
@@ -38,17 +39,34 @@
       ['\u05b7', 'Patach', 'M18 45H82V55H18Z'],
       ['\u05b6', 'Segol', 'M39 34A7 7 0 1 1 25 34A7 7 0 1 1 39 34ZM75 34A7 7 0 1 1 61 34A7 7 0 1 1 75 34ZM57 66A7 7 0 1 1 43 66A7 7 0 1 1 57 66Z']
     ];
-    const practiceCombinations = letters.slice(0, 5).flatMap(([letter, name]) =>
-      letters.slice(5, 8).map(([vowel, vowelName]) => [
+    const learnedLetters = letters.slice(0, 5);
+    const learnedVowels = letters.slice(5, 8);
+    function shuffled(items) {
+      const result = [...items];
+      for (let i = result.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+      }
+      return result;
+    }
+    const practiceCombinations = learnedLetters.flatMap(([letter, name]) =>
+      learnedVowels.map(([vowel, vowelName]) => [
         (letter + vowel).normalize('NFC'), `${name} with ${vowelName}`, null, 'practice'
       ])
     );
     // Shuffle once per visit so going back preserves the same practice page.
-    for (let i = practiceCombinations.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [practiceCombinations[i], practiceCombinations[j]] = [practiceCombinations[j], practiceCombinations[i]];
-    }
-    letters.push(...practiceCombinations.slice(0, 12));
+    const letterReview = shuffled([...learnedLetters, ...learnedLetters]);
+    letters.splice(5, 0, ...letterReview);
+    letters.push(...shuffled(practiceCombinations).slice(0, 12));
+    const pairCombinations = practiceCombinations.flatMap(first =>
+      practiceCombinations.filter(second =>
+        first[1].split(' with ')[0] !== second[1].split(' with ')[0]
+        && first[1].split(' with ')[1] !== second[1].split(' with ')[1]
+      ).map(second => [
+        `${first[0]}\u2002${second[0]}`, `${first[1]}, then ${second[1]}`, null, 'pair'
+      ])
+    );
+    letters.push(...shuffled(pairCombinations).slice(0, 12));
     const book = document.getElementById('book');
     const back = document.getElementById('back');
     const beginning = document.getElementById('beginning');
@@ -66,7 +84,9 @@
       const letter = document.createElement('span');
       letter.className = 'letter';
       if (letters[target][3] === 'practice') letter.classList.add('practice');
+      if (letters[target][3] === 'pair') letter.classList.add('pair');
       letter.lang = 'he';
+      letter.dir = 'rtl';
       letter.textContent = letters[target][0];
       letter.setAttribute('aria-label', letters[target][1]);
       if (letters[target][2]) {
@@ -113,6 +133,7 @@
       const context = document.createElement('canvas').getContext('2d');
       context.font = `${style.fontSize} ${style.fontFamily}`;
       context.textAlign = 'center';
+      context.direction = 'rtl';
       const metrics = context.measureText(glyph.textContent);
       const baseline = glyphBaseline(glyph);
       const bounds = glyph.getBoundingClientRect();
@@ -158,6 +179,7 @@
       ink.font = `${style.fontSize} ${style.fontFamily}`;
       ink.fillStyle = style.color;
       ink.textAlign = 'center';
+      ink.direction = 'rtl';
       ink.textBaseline = 'alphabetic';
       ink.fillText(glyph.textContent, bounds.left + bounds.width / 2 - originX, baseline - originY);
       }
