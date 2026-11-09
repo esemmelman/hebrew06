@@ -11,6 +11,8 @@
     .page { position: absolute; inset: 0; display: grid; place-items: center; background: #dce7df; backface-visibility: hidden; }
     .page::before { content: ''; position: absolute; width: min(86vw, 86vh); height: min(82vw, 82vh); background: white; border: 2px solid #ff1616; box-shadow: 2px 3px 5px #0004; pointer-events: none; }
     .letter { position: relative; font-family: 'Times New Roman', 'Noto Serif Hebrew', serif; font-size: min(62vw, 62vh); line-height: 1.2; color: #111; }
+    .letter.vowel { width: min(44vw, 44vh); height: min(44vw, 44vh); }
+    .letter.vowel svg { display: block; width: 100%; height: 100%; fill: #111; stroke: none; }
     button { position: fixed; top: max(20px, env(safe-area-inset-top)); width: 64px; height: 64px; padding: 12px; border: 0; background: transparent; color: #111; cursor: pointer; z-index: 5; border-radius: 50%; }
     button:hover { background: #f2f2f2; }
     button:focus-visible { outline: 3px solid #555; outline-offset: 3px; }
@@ -27,7 +29,12 @@
   <button id="back" aria-label="Previous letter" hidden><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M27 16H5m10-10L5 16l10 10"/></svg></button>
   <button id="next" aria-label="Next letter"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 16h22M17 6l10 10-10 10"/></svg></button>
   <script>
-    const letters = [ ['א', 'Aleph'], ['בּ', 'Bet'], ['ב', 'Vet'], ['ג', 'Gimmel'], ['ד', 'Daled'] ];
+    const letters = [
+      ['א', 'Aleph'], ['בּ', 'Bet'], ['ב', 'Vet'], ['ג', 'Gimmel'], ['ד', 'Daled'],
+      ['\u05b8', 'Kamatz', 'M18 34H82V44H55V66H45V44H18Z'],
+      ['\u05b7', 'Patach', 'M18 45H82V55H18Z'],
+      ['\u05b6', 'Segol', 'M39 34A7 7 0 1 1 25 34A7 7 0 1 1 39 34ZM75 34A7 7 0 1 1 61 34A7 7 0 1 1 75 34ZM57 66A7 7 0 1 1 43 66A7 7 0 1 1 57 66Z']
+    ];
     const book = document.getElementById('book');
     const back = document.getElementById('back');
     const next = document.getElementById('next');
@@ -46,6 +53,20 @@
       letter.lang = 'he';
       letter.textContent = letters[target][0];
       letter.setAttribute('aria-label', letters[target][1]);
+      if (letters[target][2]) {
+        // Draw standalone vowel marks without an automatic dotted-circle base.
+        letter.classList.add('vowel');
+        letter.dataset.vowel = letters[target][2];
+        letter.setAttribute('role', 'img');
+        letter.textContent = '';
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('viewBox', '0 0 100 100');
+        svg.setAttribute('aria-hidden', 'true');
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', letters[target][2]);
+        svg.append(path);
+        letter.append(svg);
+      }
       incoming.append(letter);
       book.prepend(incoming);
       outgoing.setAttribute('aria-hidden', 'true');
@@ -78,6 +99,15 @@
       ink.strokeRect(1, 1, width - 2, height - 2);
       const glyph = page.querySelector('.letter');
       const style = getComputedStyle(glyph);
+      if (glyph.dataset.vowel) {
+        const bounds = glyph.getBoundingClientRect();
+        ink.save();
+        ink.translate(bounds.left - originX, bounds.top - originY);
+        ink.scale(bounds.width / 100, bounds.height / 100);
+        ink.fillStyle = style.color;
+        ink.fill(new Path2D(glyph.dataset.vowel));
+        ink.restore();
+      } else {
       // Measure the actual DOM baseline; canvas "middle" uses different font metrics
       // and makes the letter jump when the animated sheet replaces the HTML page.
       const baselineMarker = document.createElement('span');
@@ -91,6 +121,7 @@
       ink.textAlign = 'center';
       ink.textBaseline = 'alphabetic';
       ink.fillText(glyph.textContent, bounds.left + bounds.width / 2 - originX, baseline - originY);
+      }
       const sheet = document.createElement('canvas');
       sheet.className = 'turning-sheet';
       sheet.style.filter = 'drop-shadow(2px 3px 2px #0004)';
