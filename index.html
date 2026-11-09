@@ -13,12 +13,15 @@
     .letter { position: relative; font-family: 'Times New Roman', 'Noto Serif Hebrew', serif; font-size: min(62vw, 62vh); line-height: 1.2; color: #111; }
     .letter.vowel { width: min(44vw, 44vh); height: min(44vw, 44vh); }
     .letter.vowel svg { display: block; width: 100%; height: 100%; fill: #111; stroke: none; }
+    .letter.practice { font-size: min(54vw, 54vh); }
     button { position: fixed; top: max(20px, env(safe-area-inset-top)); width: 64px; height: 64px; padding: 12px; border: 0; background: transparent; color: #111; cursor: pointer; z-index: 5; border-radius: 50%; }
     button:hover { background: #f2f2f2; }
     button:focus-visible { outline: 3px solid #555; outline-offset: 3px; }
     button:disabled { cursor: default; }
     button[hidden] { display: none; }
-    #back { left: max(20px, env(safe-area-inset-left)); }
+    #back { left: max(20px, env(safe-area-inset-left)); display: flex; align-items: center; gap: 28px; width: auto; border-radius: 12px; font: 24px/1.2 Arial, sans-serif; }
+    #back[hidden] { display: none; }
+    #back svg { width: 40px; height: 40px; flex: none; }
     #next { right: max(20px, env(safe-area-inset-right)); }
     svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .turning-sheet { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
@@ -26,7 +29,7 @@
 </head>
 <body>
   <main id="book" aria-live="polite"><div class="page"><span class="letter" lang="he" aria-label="Aleph">א</span></div></main>
-  <button id="back" aria-label="Previous letter" hidden><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M27 16H5m10-10L5 16l10 10"/></svg></button>
+  <button id="back" aria-label="Previous page" hidden><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M27 16H5m10-10L5 16l10 10"/></svg><span>Beg</span></button>
   <button id="next" aria-label="Next letter"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 16h22M17 6l10 10-10 10"/></svg></button>
   <script>
     const letters = [
@@ -35,6 +38,17 @@
       ['\u05b7', 'Patach', 'M18 45H82V55H18Z'],
       ['\u05b6', 'Segol', 'M39 34A7 7 0 1 1 25 34A7 7 0 1 1 39 34ZM75 34A7 7 0 1 1 61 34A7 7 0 1 1 75 34ZM57 66A7 7 0 1 1 43 66A7 7 0 1 1 57 66Z']
     ];
+    const practiceCombinations = letters.slice(0, 5).flatMap(([letter, name]) =>
+      letters.slice(5, 8).map(([vowel, vowelName]) => [
+        (letter + vowel).normalize('NFC'), `${name} with ${vowelName}`, null, 'practice'
+      ])
+    );
+    // Shuffle once per visit so going back preserves the same practice page.
+    for (let i = practiceCombinations.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [practiceCombinations[i], practiceCombinations[j]] = [practiceCombinations[j], practiceCombinations[i]];
+    }
+    letters.push(...practiceCombinations.slice(0, 12));
     const book = document.getElementById('book');
     const back = document.getElementById('back');
     const next = document.getElementById('next');
@@ -50,6 +64,7 @@
       incoming.className = 'page';
       const letter = document.createElement('span');
       letter.className = 'letter';
+      if (letters[target][3] === 'practice') letter.classList.add('practice');
       letter.lang = 'he';
       letter.textContent = letters[target][0];
       letter.setAttribute('aria-label', letters[target][1]);
