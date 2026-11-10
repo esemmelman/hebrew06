@@ -27,8 +27,7 @@
     button[hidden] { display: none; }
     #back { left: max(20px, env(safe-area-inset-left)); }
     #beginning { left: calc(max(20px, env(safe-area-inset-left)) + 100px); }
-    #letter-vowel { left: max(20px, env(safe-area-inset-left)); top: max(92px, calc(env(safe-area-inset-top) + 72px)); width: auto; height: auto; padding: 10px 12px; border-radius: 8px; font: 18px/1.3 Arial, sans-serif; }
-    #sections { position: fixed; z-index: 5; left: max(20px, env(safe-area-inset-left)); top: max(150px, calc(env(safe-area-inset-top) + 130px)); width: auto; padding: 2px; border: 2px inset #ddd; border-radius: 0; background: white; color: #111; font: 16px/1.4 "Segoe UI", Arial, sans-serif; }
+    #sections { position: fixed; z-index: 5; left: calc(75vw + min(21.5vw, 21.5vh) - 26px); top: calc(50vh - min(41vw, 41vh)); transform: translateX(-50%); width: auto; max-width: calc(100vw - 40px); padding: 2px; border: 2px inset #ddd; border-radius: 0; background: white; color: #111; font: 16px/1.4 "Segoe UI", Arial, sans-serif; }
     #sections option { padding: 3px 6px; }
     #sections:focus-visible { outline: 2px solid #0078d4; outline-offset: 2px; }
     #next { right: max(20px, env(safe-area-inset-right)); }
@@ -41,14 +40,15 @@
   <button id="back" aria-label="Previous page" hidden><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M27 16H5m10-10L5 16l10 10"/></svg></button>
   <button id="beginning" aria-label="Return to beginning" hidden><svg viewBox="0 0 40 32" aria-hidden="true"><path d="M18 6L8 16l10 10M32 6L22 16l10 10"/></svg></button>
   <button id="next" aria-label="Next letter"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 16h22M17 6l10 10-10 10"/></svg></button>
-  <button id="letter-vowel" lang="en" dir="ltr">Letter and vowel</button>
-  <select id="sections" size="6" aria-label="Lesson sections" lang="en" dir="ltr">
+  <select id="sections" size="8" aria-label="Lesson sections" lang="en" dir="ltr">
     <option value="0" selected>Aleph - Daled</option>
     <option value="5">Aleph - Daled practice</option>
     <option value="15">Ah - Eh</option>
     <option value="18">Ah - Eh practice</option>
     <option value="27">Combined practive</option>
     <option value="39">Two letter practive</option>
+    <option value="51">Hey - Chet</option>
+    <option value="55">Hey - Chet practice</option>
   </select>
   <aside id="sound" lang="en" dir="ltr" aria-live="polite" hidden><div id="sound-text"></div><button id="sound-close" aria-label="Close sound example">×</button></aside>
   <script>
@@ -92,15 +92,12 @@
     const sections = document.getElementById('sections');
     function updateSection() {
       const starts = [...sections.options].map(option => Number(option.value));
-      sections.selectedIndex = index >= letters.length - 12 ? -1
-        : starts.findLastIndex(start => start <= index);
+      sections.selectedIndex = starts.findLastIndex(start => start <= index);
     }
     const book = document.getElementById('book');
     const back = document.getElementById('back');
     const beginning = document.getElementById('beginning');
     const next = document.getElementById('next');
-    const letterVowel = document.getElementById('letter-vowel');
-    const firstDoubleLetterPage = letters.findIndex(page => page[3] === 'pair');
     const sound = document.getElementById('sound');
     const soundText = document.getElementById('sound-text');
     const soundExamples = {
@@ -154,7 +151,7 @@
       if (turning || target === index || target < 0 || target >= letters.length) return;
       hideSound();
       turning = true;
-      back.disabled = beginning.disabled = next.disabled = letterVowel.disabled = sections.disabled = true;
+      back.disabled = beginning.disabled = next.disabled = sections.disabled = true;
       const outgoing = book.firstElementChild;
       const incoming = document.createElement('div');
       incoming.className = 'page';
@@ -191,7 +188,7 @@
         back.hidden = index === 0;
         beginning.hidden = index === 0;
         next.hidden = index === letters.length - 1;
-        back.disabled = beginning.disabled = next.disabled = letterVowel.disabled = sections.disabled = false;
+        back.disabled = beginning.disabled = next.disabled = sections.disabled = false;
         updateSection();
         turning = false;
         if (document.activeElement.hidden) (direction > 0 ? back : next).focus();
@@ -345,7 +342,6 @@
     back.addEventListener('click', () => turn(-1));
     beginning.addEventListener('click', () => { if (index > 0) turn(-index); });
     next.addEventListener('click', () => turn(1));
-    letterVowel.addEventListener('click', () => turn(firstDoubleLetterPage - index));
     enableSound(book.firstElementChild.querySelector('.letter'), 'Aleph');
     document.getElementById('sound-close').addEventListener('click', () => {
       hideSound();
