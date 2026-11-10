@@ -59,6 +59,10 @@
     <option value="55">Heh - Chet practice</option>
     <option value="63">Heh - Chet combined practice</option>
     <option value="75">Heh - Chet two letter practice</option>
+    <option value="87">Tet - Yud</option>
+    <option value="89">Tet - Yud practice</option>
+    <option value="93">Tet - Yud combined practice</option>
+    <option value="99">Tet - Yud two letter practice</option>
   </select>
   <aside id="sound" lang="en" dir="ltr" aria-live="polite" hidden><div id="sound-text"></div><button id="sound-close" aria-label="Close sound example">×</button></aside>
   <script>
@@ -114,6 +118,23 @@
       ])
     );
     letters.push(...shuffled(nextPairCombinations).slice(0, 12));
+    const tetYudLetters = [['ט', 'Tet'], ['י', 'Yud']];
+    letters.push(...tetYudLetters, ...shuffled([...tetYudLetters, ...tetYudLetters]));
+    const tetYudPracticeCombinations = tetYudLetters.flatMap(([letter, name]) =>
+      learnedVowels.map(([vowel, vowelName]) => [
+        (letter + vowel).normalize('NFC'), `${name} with ${vowelName}`, null, 'practice'
+      ])
+    );
+    letters.push(...shuffled(tetYudPracticeCombinations));
+    const tetYudPairCombinations = tetYudPracticeCombinations.flatMap(first =>
+      tetYudPracticeCombinations.filter(second =>
+        first[1].split(' with ')[0] !== second[1].split(' with ')[0]
+        && first[1].split(' with ')[1] !== second[1].split(' with ')[1]
+      ).map(second => [
+        `${first[0]}${second[0]}`, `${first[1]}, then ${second[1]}`, null, 'pair'
+      ])
+    );
+    letters.push(...shuffled(tetYudPairCombinations).slice(0, 12));
     const sections = document.getElementById('sections');
     function updateSection() {
       const starts = [...sections.options].map(option => Number(option.value));
@@ -135,6 +156,8 @@
       Vav: 'Vav — “v” as in “van.”',
       Zayin: 'Zayin — “z” as in “zebra.”',
       Chet: 'Chet — a throaty “ch,” as in “Bach.”',
+      Tet: 'Tet — “t” as in “top.”',
+      Yud: 'Yud — “y” as in “yes.”',
       Kamatz: 'Kamatz — “ah” as in “father.”',
       Patach: 'Patach — “ah” as in “father.”',
       Segol: 'Segol — “eh” as in “bed.”'
