@@ -48,7 +48,7 @@
   <button id="back" aria-label="Previous page" hidden><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M27 16H5m10-10L5 16l10 10"/></svg></button>
   <button id="beginning" aria-label="Return to beginning" hidden><svg viewBox="0 0 40 32" aria-hidden="true"><path d="M18 6L8 16l10 10M32 6L22 16l10 10"/></svg></button>
   <button id="next" aria-label="Next letter"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 16h22M17 6l10 10-10 10"/></svg></button>
-  <select id="sections" size="14" aria-label="Lesson sections" lang="en" dir="ltr">
+  <select id="sections" size="17" aria-label="Lesson sections" lang="en" dir="ltr">
     <option value="0" selected>Aleph - Daled</option>
     <option value="5">Aleph - Daled practice</option>
     <option value="15">Ah - Eh</option>
@@ -63,6 +63,9 @@
     <option value="89">Tet - Yud practice</option>
     <option value="93">Tet - Yud combined practice</option>
     <option value="99">Tet - Yud two letter practice</option>
+    <option value="111">Chiriq - Tzerai - Kubutz</option>
+    <option value="114">Chiriq - Tzerai - Kubutz practice</option>
+    <option value="120">All letters with new vowels</option>
   </select>
   <aside id="sound" lang="en" dir="ltr" aria-live="polite" hidden><div id="sound-text"></div><button id="sound-close" aria-label="Close sound example">×</button></aside>
   <script>
@@ -135,6 +138,18 @@
       ])
     );
     letters.push(...shuffled(tetYudPairCombinations).slice(0, 12));
+    const newVowels = [['\u05b4', 'Chiriq'], ['\u05b5', 'Tzerai'], ['\u05bb', 'Kubutz']];
+    const alephNewVowels = newVowels.map(([vowel, name]) => [
+      ('א' + vowel).normalize('NFC'), `Aleph with ${name}`, null, 'practice'
+    ]);
+    letters.push(...alephNewVowels, ...shuffled([...alephNewVowels, ...alephNewVowels]));
+    const allLearnedLetters = [...learnedLetters, ...nextLetters, ...tetYudLetters];
+    const allLettersNewVowels = allLearnedLetters.flatMap(([letter, name]) =>
+      newVowels.map(([vowel, vowelName]) => [
+        (letter + vowel).normalize('NFC'), `${name} with ${vowelName}`, null, 'practice'
+      ])
+    );
+    letters.push(...shuffled(allLettersNewVowels));
     const sections = document.getElementById('sections');
     function updateSection() {
       const starts = [...sections.options].map(option => Number(option.value));
@@ -160,7 +175,10 @@
       Yud: 'Yud — “y” as in “yes.”',
       Kamatz: 'Kamatz — “ah” as in “father.”',
       Patach: 'Patach — “ah” as in “father.”',
-      Segol: 'Segol — “eh” as in “bed.”'
+      Segol: 'Segol — “eh” as in “bed.”',
+      Chiriq: 'Chiriq — “ee” as in “see.”',
+      Tzerai: 'Tzerai — “ay” as in “day.”',
+      Kubutz: 'Kubutz — “oo” as in “food.”'
     };
     function hideSound() {
       sound.hidden = true;
