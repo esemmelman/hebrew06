@@ -48,7 +48,7 @@
   <button id="back" aria-label="Previous page" hidden><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M27 16H5m10-10L5 16l10 10"/></svg></button>
   <button id="beginning" aria-label="Return to beginning" hidden><svg viewBox="0 0 40 32" aria-hidden="true"><path d="M18 6L8 16l10 10M32 6L22 16l10 10"/></svg></button>
   <button id="next" aria-label="Next letter"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 16h22M17 6l10 10-10 10"/></svg></button>
-  <select id="sections" size="18" aria-label="Lesson sections" lang="en" dir="ltr">
+  <select id="sections" size="19" aria-label="Lesson sections" lang="en" dir="ltr">
     <option value="0" selected>Aleph - Daled</option>
     <option value="5">Aleph - Daled practice</option>
     <option value="15">Ah - Eh</option>
@@ -67,6 +67,7 @@
     <option value="123">Chiriq - Tzerai - Kubutz</option>
     <option value="126">Chiriq - Tzerai - Kubutz practice</option>
     <option value="132">All letters with new vowels</option>
+    <option value="165">Two letters with all vowels</option>
   </select>
   <aside id="sound" lang="en" dir="ltr" aria-live="polite" hidden><div id="sound-text"></div><button id="sound-close" aria-label="Close sound example">×</button></aside>
   <script>
@@ -166,6 +167,26 @@
       ])
     );
     letters.push(...shuffled(allLettersNewVowels));
+    const allVowels = [...learnedVowels, ...newVowels];
+    const allVowelPracticeCombinations = [...allLetterPracticeCombinations, ...allLettersNewVowels];
+    const allVowelPairCombinations = allVowelPracticeCombinations.flatMap(first =>
+      allVowelPracticeCombinations.filter(second =>
+        first[1].split(' with ')[0] !== second[1].split(' with ')[0]
+        && first[1].split(' with ')[1] !== second[1].split(' with ')[1]
+      ).map(second => [
+        `${first[0]}${second[0]}`, `${first[1]}, then ${second[1]}`, null, 'pair'
+      ])
+    );
+    // Cover every letter and all six vowels in each visit's randomized review.
+    const reviewVowels = shuffled(allVowels);
+    const allVowelPairs = shuffled(allLearnedLetters).map(([, name], i) => {
+      const vowelName = reviewVowels[i % reviewVowels.length][1];
+      return shuffled(allVowelPairCombinations.filter(pair =>
+        pair[1].startsWith(`${name} with ${vowelName}, then `)
+      ))[0];
+    });
+    allVowelPairs.push(shuffled(allVowelPairCombinations.filter(pair => !allVowelPairs.includes(pair)))[0]);
+    letters.push(...shuffled(allVowelPairs));
     const sections = document.getElementById('sections');
     function updateSection() {
       const starts = [...sections.options].map(option => Number(option.value));
