@@ -7,14 +7,15 @@
   <style>
     * { box-sizing: border-box; }
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #dce7df; }
+    :root { --lesson-height: 100vh; }
     body { perspective: 1800px; }
     .page { position: absolute; inset: 0; display: grid; place-items: center; background: #dce7df; backface-visibility: hidden; }
-    .page::before { content: ''; position: absolute; width: min(86vw, 86vh); height: min(82vw, 82vh); background: white; border: 2px solid #ff1616; box-shadow: 2px 3px 5px #0004; pointer-events: none; }
-    .letter { position: relative; font-family: 'Times New Roman', 'Noto Serif Hebrew', serif; font-size: min(62vw, 62vh); line-height: 1.2; color: #111; }
-    .letter.vowel { width: min(44vw, 44vh); height: min(44vw, 44vh); }
+    .page::before { content: ''; position: absolute; width: min(86vw, calc(var(--lesson-height) * 0.86)); height: min(82vw, calc(var(--lesson-height) * 0.82)); background: white; border: 2px solid #ff1616; box-shadow: 2px 3px 5px #0004; pointer-events: none; }
+    .letter { position: relative; font-family: 'Times New Roman', 'Noto Serif Hebrew', serif; font-size: min(62vw, calc(var(--lesson-height) * 0.62)); line-height: 1.2; color: #111; }
+    .letter.vowel { width: min(44vw, calc(var(--lesson-height) * 0.44)); height: min(44vw, calc(var(--lesson-height) * 0.44)); }
     .letter.vowel svg { display: block; width: 100%; height: 100%; fill: #111; stroke: none; }
-    .letter.practice { font-size: min(54vw, 54vh); }
-    .letter.pair { font-size: min(32vw, 32vh); white-space: pre; direction: rtl; }
+    .letter.practice { font-size: min(54vw, calc(var(--lesson-height) * 0.54)); }
+    .letter.pair { font-size: min(32vw, calc(var(--lesson-height) * 0.32)); white-space: pre; direction: rtl; }
     .letter { cursor: pointer; }
     .letter:focus-visible { outline: 2px solid #52695b; outline-offset: 12px; }
     #sound { position: fixed; z-index: 6; bottom: 20px; left: 50%; transform: translateX(-50%); width: min(90vw, 680px); max-height: 40vh; overflow: auto; padding: 16px 52px 16px 22px; border: 1px solid #a4b7aa; border-radius: 12px; background: #f7faf7; box-shadow: 0 4px 22px #0002; color: #182b20; font: clamp(17px, 2.3vw, 22px)/1.5 Arial, sans-serif; }
@@ -33,6 +34,13 @@
     #next { right: max(20px, env(safe-area-inset-right)); }
     svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .turning-sheet { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+    @media (max-width: 760px), (pointer: coarse) {
+      :root { --lesson-height: calc(100dvh - 148px); }
+      .page { top: 148px; }
+      #sections { top: max(8px, env(safe-area-inset-top)); left: 50%; width: max-content; max-width: calc(100vw - 24px); height: 74px; overflow-y: auto; }
+      #back, #beginning, #next { top: 90px; width: 48px; height: 48px; padding: 8px; }
+      #beginning { left: calc(max(20px, env(safe-area-inset-left)) + 64px); }
+    }
   </style>
 </head>
 <body>
@@ -241,13 +249,16 @@
         + (metrics.actualBoundingBoxRight - metrics.actualBoundingBoxLeft) / 2;
       const inkY = baseline
         + (metrics.actualBoundingBoxDescent - metrics.actualBoundingBoxAscent) / 2;
-      glyph.style.transform = `translate(${innerWidth / 2 - inkX}px, ${innerHeight / 2 - inkY}px)`;
+      const pageBounds = glyph.parentElement.getBoundingClientRect();
+      glyph.style.transform = `translate(${pageBounds.left + pageBounds.width / 2 - inkX}px, ${pageBounds.top + pageBounds.height / 2 - inkY}px)`;
     }
     function animatePage(page, direction, finish) {
       if (matchMedia('(prefers-reduced-motion: reduce)').matches) { finish(); return; }
       const frameStyle = getComputedStyle(page, '::before');
       const width = parseFloat(frameStyle.width), height = parseFloat(frameStyle.height);
-      const originX = (innerWidth - width) / 2, originY = (innerHeight - height) / 2;
+      const pageBounds = page.getBoundingClientRect();
+      const originX = pageBounds.left + (pageBounds.width - width) / 2;
+      const originY = pageBounds.top + (pageBounds.height - height) / 2;
       const ratio = Math.min(devicePixelRatio || 1, 2);
       const texture = document.createElement('canvas');
       texture.width = Math.round(width * ratio);
