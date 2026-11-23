@@ -20,6 +20,7 @@
     .letter:focus-visible { outline: 2px solid #52695b; outline-offset: 12px; }
     #sound { position: fixed; z-index: 6; bottom: 20px; left: 50%; transform: translateX(-50%); width: min(90vw, 680px); max-height: 40vh; overflow: auto; padding: 16px 52px 16px 22px; border: 1px solid #a4b7aa; border-radius: 12px; background: #f7faf7; box-shadow: 0 4px 22px #0002; color: #182b20; font: clamp(17px, 2.3vw, 22px)/1.5 Arial, sans-serif; }
     #sound p { margin: 4px 0; }
+    #sound-replay { position: static; width: auto; height: auto; min-height: 44px; margin-top: 8px; padding: 6px 14px; border: 1px solid #a4b7aa; border-radius: 8px; font: inherit; }
     #sound-close { position: absolute; top: 6px; right: 6px; width: 40px; height: 40px; padding: 0; font: 28px Arial, sans-serif; }
     button { position: fixed; top: max(20px, env(safe-area-inset-top)); width: 64px; height: 64px; padding: 12px; border: 0; background: transparent; color: #111; cursor: pointer; z-index: 5; border-radius: 50%; }
     button:hover { background: #f2f2f2; }
@@ -69,7 +70,7 @@
     <option value="132">All letters with new vowels</option>
     <option value="165">Two letters with all vowels</option>
   </select>
-  <aside id="sound" lang="en" dir="ltr" hidden><div id="sound-text"></div><button id="sound-replay">Replay audio</button><p id="sound-status" role="status"></p><button id="sound-close" aria-label="Close sound example">×</button></aside>
+  <aside id="sound" lang="en" dir="ltr" hidden><div id="sound-text"></div><button id="sound-replay" hidden>Replay audio</button><p id="sound-status" role="status"></p><button id="sound-close" aria-label="Close sound example">×</button></aside>
   <script>
     const letters = [
       ['א', 'Aleph'], ['בּ', 'Bet'], ['ב', 'Vet'], ['ג', 'Gimmel'], ['ד', 'Daled'],
@@ -220,14 +221,18 @@
         return vowel ? consonantSounds[letter] + vowelSounds[vowel] : letter.toLowerCase();
       });
       function showError() {
-        if (id === playbackId) soundStatus.textContent = 'Recording unavailable.';
+        if (id !== playbackId) return;
+        soundStatus.textContent = 'Recording unavailable.';
+        replay.hidden = true;
       }
       function playClip(position) {
         if (id !== playbackId || position === clips.length) return;
         audio.onended = () => playClip(position + 1);
         audio.onerror = showError;
         audio.src = `audio/${clips[position]}.mp3`;
-        audio.play().catch(showError);
+        audio.play().then(() => {
+          if (id === playbackId) replay.hidden = false;
+        }, showError);
       }
       playClip(0);
     }
@@ -270,6 +275,7 @@
       sound.hidden = false;
       glyph.setAttribute('aria-expanded', 'true');
       activePrompt = name;
+      replay.hidden = true;
       playPrompt(name);
     }
     function enableSound(glyph, name) {
