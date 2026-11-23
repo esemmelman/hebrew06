@@ -69,7 +69,7 @@
     <option value="132">All letters with new vowels</option>
     <option value="165">Two letters with all vowels</option>
   </select>
-  <aside id="sound" lang="en" dir="ltr" aria-live="polite" hidden><div id="sound-text"></div><button id="sound-close" aria-label="Close sound example">×</button></aside>
+  <aside id="sound" lang="en" dir="ltr" hidden><div id="sound-text"></div><button id="sound-replay">Replay audio</button><p id="sound-status" role="status"></p><button id="sound-close" aria-label="Close sound example">×</button></aside>
   <script>
     const letters = [
       ['א', 'Aleph'], ['בּ', 'Bet'], ['ב', 'Vet'], ['ג', 'Gimmel'], ['ד', 'Daled'],
@@ -198,6 +198,40 @@
     const next = document.getElementById('next');
     const sound = document.getElementById('sound');
     const soundText = document.getElementById('sound-text');
+    const soundStatus = document.getElementById('sound-status');
+    const replay = document.getElementById('sound-replay');
+    const audio = new Audio();
+    const consonantSounds = {
+      Aleph: '', Bet: 'b', Vet: 'v', Gimmel: 'g', Daled: 'd', Heh: 'h',
+      Vav: 'v', Zayin: 'z', Chet: 'ch', Tet: 't', Yud: 'y'
+    };
+    const vowelSounds = {
+      Kamatz: 'ah', Patach: 'ah', Segol: 'eh', Chiriq: 'ee', Tzerai: 'ay', Kubutz: 'oo'
+    };
+    let playbackId = 0;
+    let activePrompt;
+
+    function playPrompt(name) {
+      const id = ++playbackId;
+      audio.pause();
+      soundStatus.textContent = '';
+      const clips = name.split(', then ').map(part => {
+        const [letter, vowel] = part.split(' with ');
+        return vowel ? consonantSounds[letter] + vowelSounds[vowel] : letter.toLowerCase();
+      });
+      function showError() {
+        if (id === playbackId) soundStatus.textContent = 'Recording unavailable.';
+      }
+      function playClip(position) {
+        if (id !== playbackId || position === clips.length) return;
+        audio.onended = () => playClip(position + 1);
+        audio.onerror = showError;
+        audio.src = `audio/${clips[position]}.mp3`;
+        audio.play().catch(showError);
+      }
+      playClip(0);
+    }
+    replay.addEventListener('click', () => playPrompt(activePrompt));
     const soundExamples = {
       Aleph: 'Aleph — no consonant sound, like the silent “k” in “knee.” A vowel gives it a sound.',
       Bet: 'Bet — “b” as in “ball.”',
@@ -218,6 +252,8 @@
       Kubutz: 'Kubutz — “oo” as in “food.”'
     };
     function hideSound() {
+      playbackId++;
+      audio.pause();
       sound.hidden = true;
       book.querySelectorAll('.letter').forEach(glyph => glyph.setAttribute('aria-expanded', 'false'));
     }
@@ -233,6 +269,8 @@
       });
       sound.hidden = false;
       glyph.setAttribute('aria-expanded', 'true');
+      activePrompt = name;
+      playPrompt(name);
     }
     function enableSound(glyph, name) {
       glyph.setAttribute('role', 'button');
